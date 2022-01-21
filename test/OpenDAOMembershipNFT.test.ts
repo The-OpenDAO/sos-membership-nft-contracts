@@ -31,14 +31,14 @@ describe("OpenDAOMembershipNFT", function () {
     [owner, alice, bob, charlie, david, eric] = await ethers.getSigners();
 
     const mintList = [
-      [alice.address, 0],
-      [bob.address, 1],
-      [charlie.address, 2],
-      [david.address, 3],
-      [eric.address, 0],
+      { wallet: alice.address, tier: 0},
+      { wallet: bob.address, tier: 1},
+      { wallet: charlie.address, tier: 2},
+      { wallet: david.address, tier: 3},
+      { wallet: eric.address, tier: 0},
     ];
 
-    tree = generateMerkleProofs(mintList as [string, number][]);
+    tree = generateMerkleProofs(mintList);
   });
 
   describe("Constrcutor & Default Settings", () => {

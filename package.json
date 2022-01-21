@@ -1,5 +1,8 @@
 {
-  "name": "hardhat-project",
+  "name": "sos-membership-nft-contracts",
+  "scripts": {
+    "snapshot": "ts-node ./snapshot/index.ts"
+  },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.4",
     "@nomiclabs/hardhat-etherscan": "^2.1.8",
@@ -34,8 +37,6 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.4.2",
-    "keccak256": "^1.0.6",
-    "merkletreejs": "^0.2.27",
-    "web3-utils": "^1.7.0"
+    "merkletreejs": "^0.2.27"
   }
 }

@@ -1,6 +1,11 @@
 import { keccak256, solidityKeccak256 } from "ethers/lib/utils";
 import MerkleTree from "merkletreejs";
 
+interface Minter {
+  wallet: string;
+  tier: number;
+}
+
 const allowedTiers = new Set([0, 1, 2, 3]);
 
 function getLeaf(wallet: string, tier: number) {
@@ -9,10 +14,10 @@ function getLeaf(wallet: string, tier: number) {
     "hex");
 }
 
-export function generateMerkleProofs(mintList: [string, number][]) {
+export function generateMerkleProofs(mintList: Minter[]) {
   const duplicatedWallets = new Set<string>();
 
-  const leafNodes = mintList.map(([wallet, tier], index) => {
+  const leafNodes = mintList.map(({wallet, tier}, index) => {
     if (duplicatedWallets.has(wallet)) {
       console.error("MintList #%s: wallet %s is duplicated", index, wallet);
       process.exit(-1);
@@ -33,7 +38,7 @@ export function generateMerkleProofs(mintList: [string, number][]) {
     { sortPairs: true });
   const proofs = {} as { [wallet: string]: { tier: number, proofs: string[] } };
 
-  mintList.forEach(([wallet, tier], index) => {
+  mintList.forEach(({wallet, tier}, index) => {
     const leaf = leafNodes[index];
     proofs[wallet] = { tier, proofs: tree.getHexProof(leaf) };
   });
