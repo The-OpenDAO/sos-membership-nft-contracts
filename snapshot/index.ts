@@ -149,7 +149,7 @@ async function main() {
     const prefix = wallet.substring(0, 4).toLowerCase();
     if (!proofsByWalletPrefixes[prefix]) proofsByWalletPrefixes[prefix] = {};
 
-    proofsByWalletPrefixes[prefix][wallet] = tree.proofs[wallet];
+    proofsByWalletPrefixes[prefix][wallet.toLowerCase()] = tree.proofs[wallet];
   }
 
   for (const prefix in proofsByWalletPrefixes) {
