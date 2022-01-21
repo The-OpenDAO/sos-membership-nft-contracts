@@ -1,6 +1,7 @@
 {
   "name": "sos-membership-nft-contracts",
   "scripts": {
+    "test": "npx hardhat test",
     "snapshot": "ts-node ./snapshot/index.ts"
   },
   "devDependencies": {

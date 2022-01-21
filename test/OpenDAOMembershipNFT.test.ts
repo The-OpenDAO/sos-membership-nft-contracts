@@ -31,11 +31,11 @@ describe("OpenDAOMembershipNFT", function () {
     [owner, alice, bob, charlie, david, eric] = await ethers.getSigners();
 
     const mintList = [
-      { wallet: alice.address, tier: 0},
-      { wallet: bob.address, tier: 1},
-      { wallet: charlie.address, tier: 2},
-      { wallet: david.address, tier: 3},
-      { wallet: eric.address, tier: 0},
+      { wallet: alice.address, tier: 0 },
+      { wallet: bob.address, tier: 1 },
+      { wallet: charlie.address, tier: 2 },
+      { wallet: david.address, tier: 3 },
+      { wallet: eric.address, tier: 0 },
     ];
 
     tree = generateMerkleProofs(mintList);
@@ -43,15 +43,15 @@ describe("OpenDAOMembershipNFT", function () {
 
   describe("Constrcutor & Default Settings", () => {
     it("Constructor", async function () {
-      const markleRoot = tree.root;
-      const nft = await setupContract(markleRoot, endTime);
+      const merkleRoot = tree.root;
+      const nft = await setupContract(merkleRoot, endTime);
 
-      expect(await nft._markleRoot()).eq(markleRoot);
+      expect(await nft._merkleRoot()).eq(merkleRoot);
       expect(await nft._claimEndTime()).eq(endTime);
     });
   });
 
-  describe.only("claimMembershipNFTs(tier8,bytes32[])", () => {
+  describe("claimMembershipNFTs(tier8,bytes32[])", () => {
     it("After claim period", async function test() {
       const nft = await setupContract(tree.root, 5000);
 
@@ -65,7 +65,7 @@ describe("OpenDAOMembershipNFT", function () {
 
       const minterInfo = tree.proofs[alice.address];
       await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, ["0x636661383339613930663361353138616235666433393039612312313123abcd"]))
-        .to.be.revertedWith("OpenDAOMembershipNFT: Invalid Markle Proof");
+        .to.be.revertedWith("OpenDAOMembershipNFT: Invalid Merkle Proof");
     });
 
 
@@ -157,6 +157,74 @@ describe("OpenDAOMembershipNFT", function () {
       expect(mintTx).to.be
         .emit(nft, "TransferSingle")
         .withArgs(david.address, ZERO_ADDRESS, david.address, 3, 1);
+    });
+  });
+
+  describe("setURI(string)", () => {
+    it("Normal", async function test() {
+      const nft = await setupContract(tree.root, endTime);
+      const minterInfo = tree.proofs[alice.address];
+      await nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs);
+
+      await nft.connect(owner).setURI("testURI/");
+
+      expect(await nft.uri(0)).eq("testURI/0.json");
+      expect(await nft.uri(1)).eq("testURI/1.json");
+      expect(await nft.uri(2)).eq("testURI/2.json");
+      expect(await nft.uri(3)).eq("testURI/3.json");
+    });
+
+    it("Not owner", async function test() {
+      const nft = await setupContract(tree.root, endTime);
+
+      await expect(nft.connect(alice).setURI("testURI/"))
+        .to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("setClaimEndTime(uint256) ", () => {
+    it("Normal", async function test() {
+      const nft = await setupContract(tree.root, 0);
+      const minterInfo = tree.proofs[alice.address];
+
+      await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs))
+        .to.be.revertedWith("OpenDAOMembershipNFT: Claim period is over");
+
+      await nft.setClaimEndTime(endTime);
+      expect(await nft._claimEndTime()).eq(endTime);
+
+      await nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs);
+    });
+
+    it("Not owner", async function test() {
+      const nft = await setupContract(tree.root, endTime);
+
+      await expect(nft.connect(alice).setClaimEndTime(10))
+        .to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("setMerkleRoot(bytes32) ", () => {
+    it("Normal", async function test() {
+      const nft = await setupContract("0x429b9baa9907d39b9a0f3e30e0a097ed06d3777ad9f3fbfc5cf643ea198084f7", endTime);
+      const minterInfo = tree.proofs[alice.address];
+
+      await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, []))
+      .to.be.revertedWith("OpenDAOMembershipNFT: Invalid Merkle Proof");
+
+      await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs))
+        .to.be.revertedWith("OpenDAOMembershipNFT: Invalid Merkle Proof");
+
+      await nft.connect(owner).setMerkleRoot(tree.root);
+      expect(await nft._merkleRoot()).eq(tree.root);
+      await nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs);
+    });
+
+    it("Not owner", async function test() {
+      const nft = await setupContract(tree.root, endTime);
+
+      await expect(nft.connect(alice).setMerkleRoot("0x429b9baa9907d39b9a0f3e30e0a097ed06d3777ad9f3fbfc5cf643ea198084f7"))
+        .to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 });

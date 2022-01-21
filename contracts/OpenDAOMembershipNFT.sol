@@ -4,15 +4,22 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract OpenDAOMembershipNFT is ERC1155, Ownable {
+    using Strings for uint256;
+
     mapping(address => bool) public _claimed;
-    bytes32 public _markleRoot;
+    bytes32 public _merkleRoot;
     uint256 public _claimEndTime;
 
     constructor(bytes32 root, uint256 claimEndTime) ERC1155("") {
-        _markleRoot = root;
+        _merkleRoot = root;
         _claimEndTime = claimEndTime;
+    }
+
+    function uri(uint256 tokenId) public view virtual override returns (string memory) {
+        return string(abi.encodePacked(ERC1155.uri(tokenId), tokenId.toString(), ".json"));
     }
 
     function claimMembershipNFTs(uint8 tier, bytes32[] memory proof) external {
@@ -20,7 +27,7 @@ contract OpenDAOMembershipNFT is ERC1155, Ownable {
         require(!_claimed[msg.sender], "OpenDAOMembershipNFT: Already claimed");
 
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, tier));
-        require(MerkleProof.verify(proof, _markleRoot, leaf), "OpenDAOMembershipNFT: Invalid Markle Proof");
+        require(MerkleProof.verify(proof, _merkleRoot, leaf), "OpenDAOMembershipNFT: Invalid Merkle Proof");
 
         _claimed[msg.sender] = true;
 
@@ -38,7 +45,7 @@ contract OpenDAOMembershipNFT is ERC1155, Ownable {
         _claimEndTime = newEndTime;
     }
 
-    function setMarkleRoot(bytes32 newRoot) external onlyOwner {
-        _markleRoot = newRoot;
+    function setMerkleRoot(bytes32 newRoot) external onlyOwner {
+        _merkleRoot = newRoot;
     }
 }
