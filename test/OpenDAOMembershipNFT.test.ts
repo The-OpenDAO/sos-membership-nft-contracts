@@ -57,7 +57,7 @@ describe("OpenDAOMembershipNFT", function () {
 
       const minterInfo = tree.proofs[alice.address];
       await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs))
-        .to.be.revertedWith("OpenDAOMembershipNFT: Claim period is over");
+        .to.be.revertedWith("OpenDAOMembershipNFT: claim period is over");
     });
 
     it("Invalid proof", async function test() {
@@ -65,7 +65,7 @@ describe("OpenDAOMembershipNFT", function () {
 
       const minterInfo = tree.proofs[alice.address];
       await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, ["0x636661383339613930663361353138616235666433393039612312313123abcd"]))
-        .to.be.revertedWith("OpenDAOMembershipNFT: Invalid Merkle Proof");
+        .to.be.revertedWith("OpenDAOMembershipNFT: invalid merkle proof");
     });
 
 
@@ -76,10 +76,10 @@ describe("OpenDAOMembershipNFT", function () {
       const mintTx = await nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs);
 
       await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs))
-        .to.be.revertedWith("OpenDAOMembershipNFT: Already claimed");
+        .to.be.revertedWith("OpenDAOMembershipNFT: already claimed");
     });
 
-    it("Successfully mint as Tier 0 user", async function test() {
+    it("Mint as Tier 0 user", async function test() {
       const nft = await setupContract(tree.root, endTime + 10000000);
 
       const minterInfo = tree.proofs[alice.address];
@@ -105,7 +105,7 @@ describe("OpenDAOMembershipNFT", function () {
         .withArgs(alice.address, ZERO_ADDRESS, alice.address, 3, 1);
     });
 
-    it("Successfully mint as Tier 1 user", async function test() {
+    it("Mint as Tier 1 user", async function test() {
       const nft = await setupContract(tree.root, endTime + 10000000);
 
       const minterInfo = tree.proofs[bob.address];
@@ -127,7 +127,7 @@ describe("OpenDAOMembershipNFT", function () {
         .withArgs(bob.address, ZERO_ADDRESS, bob.address, 3, 1);
     });
 
-    it("Successfully mint as Tier 2 user", async function test() {
+    it("Mint as Tier 2 user", async function test() {
       const nft = await setupContract(tree.root, endTime + 10000000);
 
       const minterInfo = tree.proofs[charlie.address];
@@ -145,7 +145,7 @@ describe("OpenDAOMembershipNFT", function () {
         .withArgs(charlie.address, ZERO_ADDRESS, charlie.address, 3, 1);
     });
 
-    it("Successfully mint as Tier 3 user", async function test() {
+    it("Mint as Tier 3 user", async function test() {
       const nft = await setupContract(tree.root, endTime + 10000000);
 
       const minterInfo = tree.proofs[david.address];
@@ -157,6 +157,14 @@ describe("OpenDAOMembershipNFT", function () {
       expect(mintTx).to.be
         .emit(nft, "TransferSingle")
         .withArgs(david.address, ZERO_ADDRESS, david.address, 3, 1);
+    });
+
+    it("Invalid tier", async function test() {
+      const nft = await setupContract(tree.root, endTime + 10000000);
+      const minterInfo = tree.proofs[david.address];
+
+      await expect(nft.connect(david).claimMembershipNFTs(5, minterInfo.proofs))
+        .to.be.revertedWith("OpenDAOMembershipNFT: invalid tier");
     });
   });
 
@@ -188,7 +196,7 @@ describe("OpenDAOMembershipNFT", function () {
       const minterInfo = tree.proofs[alice.address];
 
       await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs))
-        .to.be.revertedWith("OpenDAOMembershipNFT: Claim period is over");
+        .to.be.revertedWith("OpenDAOMembershipNFT: claim period is over");
 
       await nft.setClaimEndTime(endTime);
       expect(await nft._claimEndTime()).eq(endTime);
@@ -210,10 +218,10 @@ describe("OpenDAOMembershipNFT", function () {
       const minterInfo = tree.proofs[alice.address];
 
       await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, []))
-      .to.be.revertedWith("OpenDAOMembershipNFT: Invalid Merkle Proof");
+      .to.be.revertedWith("OpenDAOMembershipNFT: invalid merkle proof");
 
       await expect(nft.connect(alice).claimMembershipNFTs(minterInfo.tier, minterInfo.proofs))
-        .to.be.revertedWith("OpenDAOMembershipNFT: Invalid Merkle Proof");
+        .to.be.revertedWith("OpenDAOMembershipNFT: invalid merkle proof");
 
       await nft.connect(owner).setMerkleRoot(tree.root);
       expect(await nft._merkleRoot()).eq(tree.root);

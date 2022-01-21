@@ -23,11 +23,12 @@ contract OpenDAOMembershipNFT is ERC1155, Ownable {
     }
 
     function claimMembershipNFTs(uint8 tier, bytes32[] memory proof) external {
-        require(block.timestamp < _claimEndTime, "OpenDAOMembershipNFT: Claim period is over");
-        require(!_claimed[msg.sender], "OpenDAOMembershipNFT: Already claimed");
+        require(block.timestamp < _claimEndTime, "OpenDAOMembershipNFT: claim period is over");
+        require(!_claimed[msg.sender], "OpenDAOMembershipNFT: already claimed");
+        require(tier <= 3, "OpenDAOMembershipNFT: invalid tier");
 
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, tier));
-        require(MerkleProof.verify(proof, _merkleRoot, leaf), "OpenDAOMembershipNFT: Invalid Merkle Proof");
+        require(MerkleProof.verify(proof, _merkleRoot, leaf), "OpenDAOMembershipNFT: invalid merkle proof");
 
         _claimed[msg.sender] = true;
 
