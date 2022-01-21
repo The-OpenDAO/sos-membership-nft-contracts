@@ -1,7 +1,7 @@
 import { keccak256, solidityKeccak256 } from "ethers/lib/utils";
 import MerkleTree from "merkletreejs";
 
-interface Minter {
+export interface Minter {
   wallet: string;
   tier: number;
 }

@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 import { BigNumber, ethers, providers, Wallet } from "ethers";
 import { writeFileSync } from "fs";
 import { join } from "path";
-import { generateMerkleProofs } from "../utils/mintlist";
+import { generateMerkleProofs, Minter } from "../utils/mintlist";
 
 dotenv.config();
 
@@ -13,8 +13,9 @@ interface ERC20TransferArgs {
   value: BigNumber;
 }
 
-const OUTPUT_BALANCE = join(__dirname, "./balances.json");
-const OUTPUT_MINTLIST_PROOFS = join(__dirname, "./mintlist-proofs.json");
+const OUTPUT_BALANCE = join(__dirname, "balances.json");
+const OUTPUT_PROOF_DIR = join(__dirname, "proofs");
+const OUTPUT_MINTLIST_PROOFS = join(OUTPUT_PROOF_DIR, "tree.json");
 const ERC20_ABI_SLIM = ["event Transfer(address indexed from, address indexed to, uint value)"];
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const VESOS_ADDRESS = "0xedd27c961ce6f79afc16fd287d934ee31a90d7d1";
@@ -139,8 +140,23 @@ async function main() {
     }
   }
 
-  const proofs = generateMerkleProofs(mintList);
-  writeFileSync(OUTPUT_MINTLIST_PROOFS, JSON.stringify(proofs, null, "  "));
+  const tree = generateMerkleProofs(mintList);
+  writeFileSync(OUTPUT_MINTLIST_PROOFS, JSON.stringify(tree, null, "  "));
+
+  const proofsByWalletPrefixes: { [walletPrefix: string]: { [wallet: string]: { proofs: string[]; tier: number } } } = {};
+  for (const wallet in tree.proofs) {
+    const prefix = wallet.substring(0, 4).toLowerCase();
+    if (!proofsByWalletPrefixes[prefix]) proofsByWalletPrefixes[prefix] = {};
+
+    proofsByWalletPrefixes[prefix][wallet] = tree.proofs[wallet];
+  }
+
+  console.log("Split proofs into %s groups", 0);
+
+  for (const prefix in proofsByWalletPrefixes) {
+    const outputFile = join(OUTPUT_PROOF_DIR, prefix + ".json");
+    writeFileSync(outputFile, JSON.stringify(proofsByWalletPrefixes[prefix], null, "  "));
+  }
 
   console.log("\r\n\r\n===================================");
   console.log("Snapshot taken");
