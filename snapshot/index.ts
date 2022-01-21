@@ -1,9 +1,9 @@
 import { Log } from "@ethersproject/abstract-provider";
 import * as dotenv from "dotenv";
-import { BigNumber, ethers, providers, Wallet } from "ethers";
+import { BigNumber, ethers, providers } from "ethers";
 import { writeFileSync } from "fs";
 import { join } from "path";
-import { generateMerkleProofs, Minter } from "../utils/mintlist";
+import { generateMerkleProofs } from "../utils/mintlist";
 
 dotenv.config();
 
@@ -22,10 +22,18 @@ const VESOS_ADDRESS = "0xedd27c961ce6f79afc16fd287d934ee31a90d7d1";
 const START_BLOCK = 13938731;
 const END_BLOCK = 14029361; // Jan-18-2022 12:00:02 PM +UTC
 
-const TIER0_THRESHOLD = ethers.utils.parseEther("638056875.1");
-const TIER1_THRESHOLD = ethers.utils.parseEther("302869313.5");
-const TIER2_THRESHOLD = ethers.utils.parseEther("94020331.41");
-const TIER3_THRESHOLD = ethers.utils.parseEther("30121665.35");
+function getPercentiles(data: BigNumber[], percentiles: number[]): BigNumber[] {
+  data = data.slice();
+  data.sort((a, b) => {
+    const delta = b.sub(a);
+    return delta.isZero()
+      ? 0
+      : delta.isNegative() ? -1 : 1;
+  });
+
+  const result = percentiles.map(p => data[Math.ceil(data.length * (1 - p / 100)) - 1]);
+  return result;
+}
 
 async function getBalances() {
   const iface = new ethers.utils.Interface(ERC20_ABI_SLIM);
@@ -113,30 +121,23 @@ async function main() {
   const balances = await getBalances();
   writeBalanceSnapshot(balances);
 
-  let tier0WalletCount = 0;
-  let tier1WalletCount = 0;
-  let tier2WalletCount = 0;
-  let tier3WalletCount = 0;
+  const balanceArray: BigNumber[] = [];
+  for (const wallet in balances) {
+    balanceArray.push(balances[wallet]);
+  }
+  const tierThresholds = getPercentiles(balanceArray, [90, 75, 50, 25]);
+  const tierCount: number[] = Array(tierThresholds.length).fill(0);
   const mintList = [];
 
   for (const wallet in balances) {
     const balance = balances[wallet];
 
-    if (balance.gte(TIER0_THRESHOLD)) {
-      tier0WalletCount++;
-      mintList.push({ wallet, tier: 0 });
-    }
-    else if (balance.gte(TIER1_THRESHOLD)) {
-      tier1WalletCount++;
-      mintList.push({ wallet, tier: 1 });
-    }
-    else if (balance.gte(TIER2_THRESHOLD)) {
-      tier2WalletCount++;
-      mintList.push({ wallet, tier: 2 });
-    }
-    else if (balance.gte(TIER3_THRESHOLD)) {
-      tier3WalletCount++;
-      mintList.push({ wallet, tier: 3 });
+    for (let tier = 0; tier < tierThresholds.length; tier++) {
+      if (balance.gte(tierThresholds[tier])) {
+        mintList.push({ wallet, tier });
+        tierCount[tier]++;
+        break;
+      }
     }
   }
 
@@ -151,8 +152,6 @@ async function main() {
     proofsByWalletPrefixes[prefix][wallet] = tree.proofs[wallet];
   }
 
-  console.log("Split proofs into %s groups", 0);
-
   for (const prefix in proofsByWalletPrefixes) {
     const outputFile = join(OUTPUT_PROOF_DIR, prefix + ".json");
     writeFileSync(outputFile, JSON.stringify(proofsByWalletPrefixes[prefix], null, "  "));
@@ -162,12 +161,19 @@ async function main() {
   console.log("Snapshot taken");
   console.log("Start block:", START_BLOCK);
   console.log("  End block:", END_BLOCK);
-  console.log("     Tier 0:", tier0WalletCount);
-  console.log("     Tier 1:", tier1WalletCount);
-  console.log("     Tier 2:", tier2WalletCount);
-  console.log("     Tier 3:", tier3WalletCount);
+  console.log("   Eligible: %d addresses", tierCount.reduce((prev, curr) => prev + curr, 0));
+
+  for (let tier = 0; tier < tierThresholds.length; tier++) {
+    console.log("     Tier %d: %s. Threshold: %s",
+      tier,
+      tierCount[tier].toString().padStart(2, "0"),
+      ethers.utils.formatEther(tierThresholds[tier]));
+  }
 }
 
 main()
   .then(() => process.exit(0))
-  .catch(() => process.exit(-1));
+  .catch((err) => {
+    console.error(err);
+    process.exit(-1);
+  });
