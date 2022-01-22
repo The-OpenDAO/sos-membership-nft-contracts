@@ -1,4 +1,4 @@
-# SOS Genesis Membership NFT
+# OpenDAO Genesis Membership NFT
 
 The OpenDAO Genesis Membership NFT are tokens exclusively mintable by the $veSOS holders based on the snapshot taken on 18th Jan 2022.
 
