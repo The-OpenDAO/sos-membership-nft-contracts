@@ -5,7 +5,7 @@ async function main() {
   const nft = nftFactory.attach(process.env.CONTRACT_ADDRESS as any);
 
   const tx = await nft.claimMembershipNFTs(
-    0,
+    0 /* tier */,
     [
       "0x42097ccb41d042fc9051d2af5589ae62a9c0712f44df0af42116c519e948d497",
       "0xd0b13c01c674dda1c7b8870eb2c03b0c9ef5ea6bbe08c587bbd0b27f2e59653e",

@@ -1,7 +1,7 @@
 import { Log } from "@ethersproject/abstract-provider";
 import * as dotenv from "dotenv";
 import { BigNumber, ethers, providers } from "ethers";
-import { writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { generateMerkleProofs } from "../utils/mintlist";
 
@@ -105,6 +105,17 @@ async function getBalances() {
   return balancesByAddress;
 }
 
+function loadBalances() {
+  const balancesByAddress: { [wallet: string]: BigNumber } = {};
+
+  for (const balance of JSON.parse(readFileSync(OUTPUT_BALANCE).toString())) {
+    balancesByAddress[balance[0]] = BigNumber.from(balance[1]);
+  }
+
+  console.log(balancesByAddress);
+  return balancesByAddress;
+}
+
 async function writeBalanceSnapshot(balances: { [wallet: string]: BigNumber }) {
   const list = [];
 
@@ -118,8 +129,14 @@ async function writeBalanceSnapshot(balances: { [wallet: string]: BigNumber }) {
 }
 
 async function main() {
-  const balances = await getBalances();
-  writeBalanceSnapshot(balances);
+  let balances: { [wallet: string]: BigNumber };
+
+  if (existsSync(OUTPUT_BALANCE)) {
+    balances = loadBalances();
+  } else {
+    balances = await getBalances();
+    writeBalanceSnapshot(balances);
+  }
 
   const balanceArray: BigNumber[] = [];
   for (const wallet in balances) {
@@ -140,6 +157,8 @@ async function main() {
       }
     }
   }
+
+  mintList.sort((a, b) => a.wallet.localeCompare(b.wallet));
 
   const tree = generateMerkleProofs(mintList);
   writeFileSync(OUTPUT_MINTLIST_PROOFS, JSON.stringify(tree, null, "  "));
