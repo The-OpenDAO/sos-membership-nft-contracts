@@ -112,7 +112,6 @@ function loadBalances() {
     balancesByAddress[balance[0]] = BigNumber.from(balance[1]);
   }
 
-  console.log(balancesByAddress);
   return balancesByAddress;
 }
 
