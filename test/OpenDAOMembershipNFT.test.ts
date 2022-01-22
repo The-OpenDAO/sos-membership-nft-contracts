@@ -8,7 +8,7 @@ const endTime = Math.ceil(+new Date() / 1000) + 1000 * 3600 * 5;
 
 async function setupContract(root: string, endTime: number) {
   const nftFactory = await ethers.getContractFactory("OpenDAOMembershipNFT");
-  const nft = await nftFactory.deploy(root, endTime);
+  const nft = await nftFactory.deploy(root, endTime, "");
   await nft.deployed();
 
   return nft;

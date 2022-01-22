@@ -11,11 +11,12 @@ contract OpenDAOMembershipNFT is ERC1155, Ownable {
 
     mapping(address => bool) public _claimed;
     bytes32 public _merkleRoot;
-    uint256 public _claimEndTime;
+    uint public _claimEndTime;
 
-    constructor(bytes32 root, uint256 claimEndTime) ERC1155("") {
+    constructor(bytes32 root, uint claimEndTime, string memory uri_) ERC1155("") {
         _merkleRoot = root;
         _claimEndTime = claimEndTime;
+        _setURI(uri_);
     }
 
     function uri(uint256 tokenId) public view virtual override returns (string memory) {
@@ -42,7 +43,7 @@ contract OpenDAOMembershipNFT is ERC1155, Ownable {
         _setURI(newUri);
     }
 
-    function setClaimEndTime(uint256 newEndTime) external onlyOwner {
+    function setClaimEndTime(uint newEndTime) external onlyOwner {
         _claimEndTime = newEndTime;
     }
 
