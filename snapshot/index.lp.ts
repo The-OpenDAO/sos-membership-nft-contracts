@@ -14,20 +14,29 @@ interface ERC20TransferArgs {
   value: BigNumber;
 }
 
-const OUTPUT_BALANCE = join(__dirname, "balances.json");
-const OUTPUT_PROOF_DIR = join(__dirname, "proofs");
+const OUTPUT_BALANCE = join(__dirname, "balances.slp.json");
+const OUTPUT_PROOF_DIR = join(__dirname, "proofs.lp");
 const OUTPUT_MINTLIST_PROOFS = join(OUTPUT_PROOF_DIR, "tree.json");
-const ERC20_ABI_SLIM = ["event Transfer(address indexed from, address indexed to, uint value)"];
+const ERC20_ABI_SLIM = [
+  "event Transfer(address indexed from, address indexed to, uint value)",
+  "function balanceOf(address _owner) public view returns (uint256 balance)",
+  "function totalSupply() external view returns (uint256)",
+];
+const MASTER_CHEFV2_ABI_SLIM = [
+  "function userInfo(uint256 pid, address account) external view returns (uint256 amount, uint256 debt)",
+];
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const VESOS_ADDRESS = "0xedd27c961ce6f79afc16fd287d934ee31a90d7d1";
-const START_BLOCK = 13938731;
-const END_BLOCK = 14029361; // Jan-18-2022 12:00:02 PM +UTC
+const SLP_ADDRESS = "0xB84C45174Bfc6b8F3EaeCBae11deE63114f5c1b2";
+const SOS_ADDRESS = "0x3b484b82567a09e2588A13D54D032153f0c0aEe0";
+const MASTER_CHEFV2 = "0xEF0881eC094552b2e128Cf945EF17a6752B4Ec5d";
+const START_BLOCK = 13864933;
+const END_BLOCK = 14152105; // Feb-06-2022 11:00:39 AM +UTC
 
 async function getBalances() {
-  const iface = new ethers.utils.Interface(ERC20_ABI_SLIM);
-  const provider = new providers.JsonRpcProvider(process.env.MAINNET_URL);
+  const erc20IFace = new ethers.utils.Interface(ERC20_ABI_SLIM);
+  const provider = new providers.AlchemyProvider("mainnet", process.env.ALCHEMY_KEY);
 
-  const batchSize = 1000;
+  const batchSize = 4000;
   let startBlock = START_BLOCK;
 
   const balancesByAddress: { [wallet: string]: BigNumber } = {};
@@ -39,8 +48,8 @@ async function getBalances() {
     const logs = await provider.getLogs({
       fromBlock: startBlock,
       toBlock: toBlock,
-      address: VESOS_ADDRESS,
-      topics: [[iface.getEventTopic("Transfer")]],
+      address: SLP_ADDRESS,
+      topics: [[erc20IFace.getEventTopic("Transfer")]],
     });
 
     const logsByBlocks: { [block: number]: Log[] } = {};
@@ -61,7 +70,7 @@ async function getBalances() {
       if (!logsByBlocks[block]) continue;
 
       for (const log of logsByBlocks[block]) {
-        const event = iface.parseLog(log);
+        const event = erc20IFace.parseLog(log);
         const args = event.args as any as ERC20TransferArgs;
 
         console.log("[%d|%s] Transfer %d from %s to %s",
@@ -82,14 +91,26 @@ async function getBalances() {
     startBlock += blocksToGet;
   }
 
-  for (const wallet in balancesByAddress) {
-    if (balancesByAddress[wallet].isZero()) {
-      delete balancesByAddress[wallet];
-    }
-  }
+  const masterChefV2 = new ethers.Contract(MASTER_CHEFV2, MASTER_CHEFV2_ABI_SLIM, provider);
 
   delete balancesByAddress[ZERO_ADDRESS];
 
+  let i = 0;
+  let total = Object.entries(balancesByAddress).length;
+  for (const wallet in balancesByAddress) {
+    const { amount } = await masterChefV2.userInfo(45, wallet);
+    console.log("Updating balance for %s. %d of %d.",
+      wallet,
+      ++i,
+      total);
+
+    balancesByAddress[wallet] = balancesByAddress[wallet].add(amount);
+
+    if (balancesByAddress[wallet].isZero()) {
+      delete balancesByAddress[wallet];
+      continue
+    }
+  }
   return balancesByAddress;
 }
 
