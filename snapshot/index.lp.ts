@@ -1,7 +1,7 @@
 import { Log } from "@ethersproject/abstract-provider";
 import * as dotenv from "dotenv";
 import { BigNumber, ethers, providers } from "ethers";
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, fstatSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { generateMerkleProofs } from "../utils/mintlist";
 import { getPercentiles } from "./util";
@@ -14,6 +14,7 @@ interface ERC20TransferArgs {
   value: BigNumber;
 }
 
+const INPUT_COMPENSATION_LIST = join(__dirname, "compensation.csv");
 const OUTPUT_BALANCE = join(__dirname, "balances.slp.json");
 const OUTPUT_PROOF_DIR = join(__dirname, "proofs.lp");
 const OUTPUT_MINTLIST_PROOFS = join(OUTPUT_PROOF_DIR, "tree.json");
@@ -27,7 +28,6 @@ const MASTER_CHEFV2_ABI_SLIM = [
 ];
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const SLP_ADDRESS = "0xB84C45174Bfc6b8F3EaeCBae11deE63114f5c1b2";
-const SOS_ADDRESS = "0x3b484b82567a09e2588A13D54D032153f0c0aEe0";
 const MASTER_CHEFV2 = "0xEF0881eC094552b2e128Cf945EF17a6752B4Ec5d";
 const START_BLOCK = 13864933;
 const END_BLOCK = 14152105; // Feb-06-2022 11:00:39 AM +UTC
@@ -124,6 +124,21 @@ function loadBalances() {
   return balancesByAddress;
 }
 
+function loadCompensationList() {
+  return readFileSync(INPUT_COMPENSATION_LIST, 'ascii')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => !!line)
+    .map(line => {
+      const [wallet, tier] = line.split(",");
+
+      return {
+        wallet,
+        tier: Number.parseInt(tier),
+      };
+    });
+}
+
 async function writeBalanceSnapshot(balances: { [wallet: string]: BigNumber }) {
   const list = [];
 
@@ -166,6 +181,10 @@ async function main() {
     }
   }
 
+  const comList = loadCompensationList();
+
+  mintList.push(...comList);
+
   mintList.sort((a, b) => a.wallet.localeCompare(b.wallet));
 
   const tree = generateMerkleProofs(mintList);
@@ -192,7 +211,7 @@ async function main() {
 
   for (let tier = 0; tier < tierThresholds.length; tier++) {
     console.log("     Tier %d: %s. Threshold: %s",
-      tier,
+      tier + 1,
       tierCount[tier].toString().padStart(2, "0"),
       ethers.utils.formatEther(tierThresholds[tier]));
   }
