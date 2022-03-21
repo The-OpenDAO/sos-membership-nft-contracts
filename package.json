@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.4.2",
+    "axios": "^0.26.1",
     "merkletreejs": "^0.2.27"
   }
 }
