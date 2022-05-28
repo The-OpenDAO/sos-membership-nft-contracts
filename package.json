@@ -1,5 +1,8 @@
 {
   "name": "sos-membership-nft-contracts",
+  "engines": {
+    "node": ">=12.0.0"
+  },
   "scripts": {
     "test": "npx hardhat test",
     "snapshot": "ts-node ./snapshot/index.ts"
