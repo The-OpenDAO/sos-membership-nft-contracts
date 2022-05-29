@@ -9,4 +9,4 @@ typechain
 cache
 artifacts
 
-/scripts/balances.json
+/scripts/*.json

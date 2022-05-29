@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.4.2",
+    "commander": "^9.3.0",
     "merkletreejs": "^0.2.27"
   }
 }
