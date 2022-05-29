@@ -116,7 +116,7 @@ async function getBalances() {
           const tokenID = arg.id.toNumber();
           const value = arg.value.toNumber();
 
-          if (arg.from !== ZERO_ADDRESS) {
+          if (arg.from.toLowerCase() !== ZERO_ADDRESS.toLowerCase()) {
             const v = (balancesByAddress.get(arg.from)?.get(tokenID) ?? 0) - value;
             balancesByAddress.get(arg.from)?.set(tokenID, v);
           }
@@ -148,7 +148,7 @@ async function getBalances() {
         rm = false;
       }
     });
-    if (rm) {
+    if (rm || ZERO_ADDRESS.toLowerCase() === wallet.toLowerCase()) {
       map.delete(wallet);
     }
   });
